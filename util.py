@@ -11,7 +11,7 @@ def flatten(x):
 def unflatten(x, imsize):
     return x.view(x.size(0), imsize[0], imsize[1])
 
-def show_imgs(imgs, in_row=3, figsize=(5,5), save=False, name=None):
+def show_imgs(imgs, in_row=3, figsize=(5,5), show_plot=True):
     n = len(imgs)
     fig, axs = plt.subplots((n + in_row - 1)// in_row, in_row, figsize=figsize)
     for i in range(n):
@@ -21,9 +21,11 @@ def show_imgs(imgs, in_row=3, figsize=(5,5), save=False, name=None):
             cur_ax = axs[i//in_row, i % in_row]
         cur_ax.axis("off")
         cur_ax.imshow(imgs[i].numpy().squeeze(), cmap="gray")
-    plt.show()
+    if show_plot:
+        plt.show()
+    return fig
 
-def plot_history(train_history, eval_history):
+def plot_history(train_history, eval_history, show_plot=True):
     if len(train_history) == 0:
         return
     metrics = train_history.keys()
@@ -47,4 +49,6 @@ def plot_history(train_history, eval_history):
         ax[i // 2, i % 2].set_xlabel('train steps')
         ax[i // 2, i % 2].set_ylabel(metric)
         ax[i // 2, i % 2].legend()
-    plt.show()
+    if show_plot:
+        plt.show()
+    return fig
