@@ -24,8 +24,8 @@ def calc_metrics(pred, x):
 
 
 def append_dict(dest, to_add):
-    for k in to_add:
-        dest[k].extend(to_add)
+    for k in to_add.keys():
+        dest[k].extend(to_add[k])
     return dest
 
 def train_epoch(model, train, opt, grad_clip, HAS_CUDA=True):
@@ -38,7 +38,7 @@ def train_epoch(model, train, opt, grad_clip, HAS_CUDA=True):
         opt.zero_grad()
         pred = model.forward(x)
         lx, lz = model.loss(pred, x)
-        loss = lx * lz
+        loss = lx + lz
         loss.backward()
         if grad_clip > 0:
             torch.nn.util.clip_grad_norm_(model.parameters(), grad_clip)
@@ -72,7 +72,7 @@ def test_epoch(model, test, HAS_CUDA=True):
             history["precision"].append(p)
             history["recall"].append(r)
             history["f1"].append(f1)
-    for k in history:
+    for k in history.keys():
         history[k] = [np.mean(history[k])]
     return history
 
@@ -82,10 +82,17 @@ def train_model(model, opt, train, test, scheduler, epochs, grad_clip=-1, HAS_CU
     train_history = defaultdict(list)
     test_history = defaultdict(list)
 
-    for epoch in range(EPOCHS)
-        train_history = append_dict(train_history, train_model(model, train, opt, grad_clip, HAS_CUDA))
+    for epoch in range(epochs):
+        print("starting epoch %d" % epoch)
+        train_history = append_dict(train_history, train_epoch(model, train, opt, grad_clip, HAS_CUDA))
         if need_test:
-            test_history = append_dict(test_history, test_model(model, test, HAS_CUDA))
+            test_history = append_dict(test_history, test_epoch(model, test, HAS_CUDA))
+            lx = test_history["Lx"][-1]
+            lz = test_history["Lz"][-1]
+            print("Eval NATS: %f" % (lx + lz))
+            print("Eval reconstruction loss %f" % lx)
+            print("Eval divergence loss %f" % lz)
+            print("Eval f1: %f" % (test_history["f1"][-1]))
         draw_plot = show_plot or save_plot
         if draw_plot:
             plt.close('all')
@@ -93,5 +100,6 @@ def train_model(model, opt, train, test, scheduler, epochs, grad_clip=-1, HAS_CU
             if save_plot:
                 fig.savefig(path.join(save_dir, save_prefix + 'plot.pdf'))
         if save_dir is not None:
-        torch.save(model, path.join(save_dir, save_prefix + str(epoch)))
+            torch.save(model, path.join(save_dir, save_prefix + str(epoch)))
+        scheduler.step()
 

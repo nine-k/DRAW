@@ -44,6 +44,8 @@ class DRAW(nn.Module):
         self.sigmas = [None] * self.T
         self.logsigmas = [None] * self.T
         self.mus = [None] * self.T
+        self.attention_history = [None] * self.T
+        self.canvas_history = [None] * self.T
 
         if (self.write_size is None) == (self.read_size is None):
             self.need_attention = self.write_size is not None
@@ -68,7 +70,7 @@ class DRAW(nn.Module):
         if not self.need_attention:
             encoder_input_size = self.input_len * 2 + self.lstm_hidden
         else:
-            encoder_input_size = self.read_size**2 * 2 + self.lstm_hidden
+            encoder_input_size = int(self.read_size)**2 * 2 + self.lstm_hidden
         self.encoder_cell = nn.LSTMCell(encoder_input_size,
                                         self.lstm_hidden)
 
@@ -83,7 +85,7 @@ class DRAW(nn.Module):
                                         self.lstm_hidden)
 
         if self.need_attention:
-            self.writer_matrix = nn.Linear(self.lstm_hidden, self.write_size**2)
+            self.writer_matrix = nn.Linear(self.lstm_hidden, int(self.write_size)**2)
         else:
             self.writer_matrix = nn.Linear(self.lstm_hidden, self.input_len)
 
@@ -102,7 +104,7 @@ class DRAW(nn.Module):
 
     def _get_filter_mus(self, g, delta, N):
         bsz = g.size(0)
-        i_s = torch.arange(N, device=self.device).unsqueeze(0).repeat(bsz, 1) # create matrix of ranges bsz * N
+        i_s = torch.arange(N, device=self.device).float().unsqueeze(0).repeat(bsz, 1) # create matrix of ranges bsz * N
         mu = g + (i_s - N / 2. - 0.5) * delta
         return mu
 
@@ -110,12 +112,12 @@ class DRAW(nn.Module):
         bsz = mu.size(0)
         N = mu.size(1)
         # shape a * N * bsz this is done for broadcasting
-        F = torch.arange(a, device=self.device).unsqueeze(-1).unsqueeze(-1).repeat(1, N, bsz)
+        F = torch.arange(a, device=self.device).float().unsqueeze(-1).unsqueeze(-1).repeat(1, N, bsz)
         # transpose mu and sigma for broadcasting
         mu = mu.transpose(0, 1)
         sigma = sigma.transpose(0, 1)
         F = torch.exp(
-            -1. * (F - mu)**2 / (2 * sigma)
+            -1. * (F - mu)**2 / (2. * sigma)
         )
         F = F / (F.sum(dim=0) + self.eps) # normalize filter
         F = F.permute(2, 1, 0)
@@ -127,6 +129,12 @@ class DRAW(nn.Module):
         else:
             attention_params_matrices = self.write_attention_params_matrices
         g_x, g_y, sigma, delta, gamma = attention_params_matrices(h_dec, N)
+        if self.save_attentions and read:
+            self.attention_history[self.t] = {
+                        "g_x": g_x.cpu().detach().numpy(),
+                        "g_y": g_y.cpu().detach().numpy(),
+                        "delta": delta.cpu().detach().numpy(),
+            }
         mu_x = self._get_filter_mus(g_x, delta, N) # shape bsz * N
         mu_y = self._get_filter_mus(g_y, delta, N) # shape bsz * N
 
@@ -150,7 +158,8 @@ class DRAW(nn.Module):
     def loss(self, x, y):
         return self.decoder_loss(x, y), self.latent_loss(x)
 
-    def forward(self, x):
+    def forward(self, x, save_attentions=False):
+        self.save_attentions = save_attentions
         batch_size = x.size(0)
         c_t = self.c_0
 
@@ -174,6 +183,12 @@ class DRAW(nn.Module):
                 (h_t_dec, c_dec)
             )
             c_t = c_t + self.write(h_t_dec)
+            if self.save_attentions:
+                self.canvas_history[self.t] = c_t.cpu().detach().numpy()
+        if self.save_attentions:
+            self.save_attentions = False
+            return self.canvas_history, self.attention_history
+        self.save_attentions = False
         return torch.sigmoid(c_t)
 
 

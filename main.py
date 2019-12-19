@@ -26,12 +26,14 @@ READ_SIZE = config.READ_SIZE
 WRITE_SIZE = config.WRITE_SIZE
 
 lr = config.lr
+lr_step = config.lr_step
+lr_gamma = config.lr_gamma
 BATCH_SIZE = config.BATCH_SIZE
 EPOCHS = config.EPOCHS
 grad_clip = config.grad_clip
 
 
-model = model.DRAW(HIDDEN, Z, T, imsize[0], imsize[1])
+model = model.DRAW(HIDDEN, Z, T, imsize[0], imsize[1], read_size=READ_SIZE, write_size=WRITE_SIZE)
 if HAS_CUDA:
     model = model.cuda()
 
@@ -43,4 +45,4 @@ train = DataLoader(dataset(mode="train"),
 test = DataLoader(dataset(mode="test"),
                   shuffle=True, batch_size=128)
 
-train.train_model(model, opt, train, test, grad_clip, EPOCHS, HAS_CUDA=HAS_CUDA, save_plot=True, save_prefix=save_prefix)
+train_funcs.train_model(model, opt, train, test, scheduler, EPOCHS, grad_clip=grad_clip, HAS_CUDA=HAS_CUDA, save_plot=True, save_prefix=save_prefix)
