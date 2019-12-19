@@ -54,10 +54,10 @@ class DRAW(nn.Module):
 
 
         # step 0 canvas
-        # self.c_0 = nn.Parameter(torch.randn(1, self.input_len,
-        #                         requires_grad=True))
-        self.c_0 = nn.Parameter(torch.zeros(1, self.input_len,
+        self.c_0 = nn.Parameter(torch.randn(1, self.input_len,
                                 requires_grad=True))
+        # self.c_0 = nn.Parameter(torch.zeros(1, self.input_len,
+        #                         requires_grad=True))
 
         # attention paramters weight vectors
         if self.need_attention:
@@ -119,7 +119,7 @@ class DRAW(nn.Module):
         F = torch.exp(
             -1. * (F - mu)**2 / (2. * sigma)
         )
-        F = F / (F.sum(dim=0) + self.eps) # normalize filter
+        F = F / (F.detach().sum(dim=0) + self.eps) # normalize filter
         F = F.permute(2, 1, 0)
         return F
 
