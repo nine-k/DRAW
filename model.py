@@ -1,7 +1,30 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+class DRAWAttentionParams(nn.Module):
+    def __init__(self, input_size, img_h, img_w):
+        super().__init__()
+        self.img_h = img_h
+        self.img_w = img_w
 
+        self.g_x = nn.Linear(input_size, 1)
+        self.g_y = nn.Linear(input_size, 1)
+        self.log_sigma = nn.Linear(input_size, 1)
+        self.log_delta = nn.Linear(input_size, 1)
+        self.log_gamma = nn.Linear(input_size, 1)
+
+    def forward(self, h_dec, N):
+        g_x = self.g_x(h_dec)
+        g_y = self.g_y(h_dec)
+        sigma = torch.exp(self.log_sigma(h_dec))
+        delta = torch.exp(self.log_delta(h_dec))
+        gamma = torch.exp(self.log_gamma(h_dec))
+        g_x = (self.img_h + 1.) / 2. * (g_x + 1.)
+        g_y = (self.img_w + 1.) / 2. * (g_y + 1.)
+        delta = (max(self.img_h, self.img_w) - 1.) / (N - 1.) * delta
+        return g_x, g_y, sigma, delta, gamma
+
+# TODO SEPARATE READ AND WRITE ATTENTION
 class DRAW(nn.Module):
     def __init__(self, lstm_hidden, z_size, T, img_h, img_w, read_size=None, write_size=None, use_gpu=HAS_CUDA):
         # set class vars
@@ -9,14 +32,15 @@ class DRAW(nn.Module):
         self.lstm_hidden = lstm_hidden
         self.z_size = z_size
         self.T = T
-        self.img_h = img_h
-        self.img_w = img_w
+        self.img_h = img_h # A in the paper
+        self.img_w = img_w # B in the paper
         self.input_len = img_h * img_w
-        self.read_size = read_size
-        self.write_size = write_size
+        self.read_size = read_size # N in the paper
+        self.write_size = write_size # also N in the paper (attention is applied at 2 moments)
         self.device = "cuda" if use_gpu else "cpu"
         self.decoder_loss_fn = nn.BCELoss(reduction='sum')
-        
+        self.eps = 1e-7
+
         self.sigmas = [None] * self.T
         self.logsigmas = [None] * self.T
         self.mus = [None] * self.T
@@ -27,19 +51,27 @@ class DRAW(nn.Module):
             raise ValueError("read and write size must either both be None or int")
 
 
-        # set model
-        self.c_0 = nn.Parameter(torch.randn(1, self.input_len,
+        # step 0 canvas
+        # self.c_0 = nn.Parameter(torch.randn(1, self.input_len,
+        #                         requires_grad=True))
+        self.c_0 = nn.Parameter(torch.zeros(1, self.input_len,
                                 requires_grad=True))
-        
+
+        # attention paramters weight vectors
         if self.need_attention:
-            pass #TODO add reader
+            self.read_attention_params_matrices = DRAWAttentionParams(self.lstm_hidden, self.img_h, self.img_w)
+            self.write_attention_params_matrices = DRAWAttentionParams(self.lstm_hidden, self.img_h, self.img_w)
 
         # Encoder
         self.h_0_enc = nn.Parameter(torch.randn(self.lstm_hidden,
                                     requires_grad=True))
-        self.encoder_cell = nn.LSTMCell(self.input_len * 2 + self.lstm_hidden,
+        if not self.need_attention:
+            encoder_input_size = self.input_len * 2 + self.lstm_hidden
+        else:
+            encoder_input_size = self.read_size**2 * 2 + self.lstm_hidden
+        self.encoder_cell = nn.LSTMCell(encoder_input_size,
                                         self.lstm_hidden)
-        
+
         # Q
         self.mu_matrix = nn.Linear(self.lstm_hidden, z_size)
         self.sigma_matrix = nn.Linear(self.lstm_hidden, z_size)
@@ -49,9 +81,9 @@ class DRAW(nn.Module):
                                     requires_grad=True))
         self.decoder_cell = nn.LSTMCell(self.z_size,
                                         self.lstm_hidden)
-        
+
         if self.need_attention:
-            pass #TODO add writer
+            self.writer_matrix = nn.Linear(self.lstm_hidden, self.write_size**2)
         else:
             self.writer_matrix = nn.Linear(self.lstm_hidden, self.input_len)
 
@@ -68,8 +100,40 @@ class DRAW(nn.Module):
 
         return z * sigma + mu
 
-    def step(self):
-        pass
+    def _get_filter_mus(self, g, delta, N):
+        bsz = g.size(0)
+        i_s = torch.arange(N, device=self.device).unsqueeze(0).repeat(bsz, 1) # create matrix of ranges bsz * N
+        mu = g + (i_s - N / 2. - 0.5) * delta
+        return mu
+
+    def _get_filter_bank(self, mu, sigma, a):
+        bsz = mu.size(0)
+        N = mu.size(1)
+        # shape a * N * bsz this is done for broadcasting
+        F = torch.arange(a, device=self.device).unsqueeze(-1).unsqueeze(-1).repeat(1, N, bsz)
+        # transpose mu and sigma for broadcasting
+        mu = mu.transpose(0, 1)
+        sigma = sigma.transpose(0, 1)
+        F = torch.exp(
+            -1. * (F - mu)**2 / (2 * sigma)
+        )
+        F = F / (F.sum(dim=0) + self.eps) # normalize filter
+        F = F.permute(2, 1, 0)
+        return F
+
+    def get_filter_banks(self, h_dec, N, read=True):
+        if read:
+            attention_params_matrices = self.read_attention_params_matrices
+        else:
+            attention_params_matrices = self.write_attention_params_matrices
+        g_x, g_y, sigma, delta, gamma = attention_params_matrices(h_dec, N)
+        mu_x = self._get_filter_mus(g_x, delta, N) # shape bsz * N
+        mu_y = self._get_filter_mus(g_y, delta, N) # shape bsz * N
+
+        F_x = self._get_filter_bank(mu_x, sigma, self.img_h)
+        F_y = self._get_filter_bank(mu_y, sigma, self.img_w)
+        return gamma, F_x, F_y
+
 
     def decoder_loss(self, x, y):
         return self.decoder_loss_fn(x, y) / x.size(0) # divide by batch size
@@ -111,7 +175,7 @@ class DRAW(nn.Module):
             )
             c_t = c_t + self.write(h_t_dec)
         return torch.sigmoid(c_t)
-            
+
 
     def generate(self, batch_size, save_history=False):
         c_dec = torch.zeros(batch_size, self.lstm_hidden, device=self.device)
@@ -130,12 +194,34 @@ class DRAW(nn.Module):
 
     def read(self, x, x_hat, h_dec):
         if self.need_attention:
-            raise NotImplementedError("not implemented yet")
-        else:
-            return torch.cat((x, x_hat), dim=-1)
-    
+            bsz = x.size(0)
+            gamma, F_x, F_y = self.get_filter_banks(h_dec, self.read_size)
+            x = x.view(bsz, self.img_h, self.img_w)
+            x_hat = x.view(bsz, self.img_h, self.img_w)
+            def apply_F(x, F_y, F_x, gamma):
+                x = torch.bmm(torch.bmm(F_y, x), F_x.transpose(1, 2))
+                x = x.permute(2, 1, 0)
+                gamma = gamma.transpose(0, 1)
+                x = x * gamma
+                x = x.permute(2, 1, 0)
+                return x
+            x = apply_F(x, F_y, F_x, gamma)
+            x_hat = apply_F(x_hat, F_y, F_x, gamma)
+            x = x.view(bsz, self.read_size**2)
+            x_hat = x_hat.view(bsz, self.read_size**2)
+        return torch.cat((x, x_hat), dim=-1)
+
     def write(self, h_dec):
+        w = self.writer_matrix(h_dec)
         if self.need_attention:
-            raise NotImplementedError("not implemented yet")
-        else:
-            return self.writer_matrix(h_dec)
+            bsz = h_dec.size(0)
+            w = w.view(bsz, self.write_size, self.write_size)
+            gamma, F_x, F_y = self.get_filter_banks(h_dec, self.write_size, read=False)
+            w = torch.bmm(torch.bmm(F_y.transpose(1, 2), w), F_x)
+            w = w.permute(2, 1, 0)
+            gamma = 1. / gamma.transpose(0, 1)
+            w = w * gamma
+            w = w.permute(2, 1, 0)
+            w = w.view(bsz, self.img_h * self.img_w)
+        return w
+
