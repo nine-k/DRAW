@@ -71,19 +71,22 @@ def test_model(model, test, HAS_CUDA=True):
         history[k] = [np.mean(history[k])]
     return history
 
-def train_model(model, opt, train, test, scheduler, grad_clip=-1, HAS_CUDA=True,
+def train_model(model, opt, train, test, scheduler, epochs, grad_clip=-1, HAS_CUDA=True,
                 need_test=True, show_plot=False, save_plot=False,
                 save_dir=".", save_prefix=""):
     train_history = defaultdict(list)
     test_history = defaultdict(list)
-    train_history = append_dict(train_history, train_model(model, train, opt, grad_clip, HAS_CUDA))
-    if need_test:
-        test_history = append_dict(test_history, test_model(model, test, HAS_CUDA))
-    draw_plot = show_plot or save_plot
-    if draw_plot:
-        plt.close('all')
-        fig = util.plot_history(train_history, test_history, draw_plot)
-        if save_plot:
-            fig.savefig(path.join(save_dir, save_prefix + 'plot.pdf'))
 
+    for epoch in range(EPOCHS)
+        train_history = append_dict(train_history, train_model(model, train, opt, grad_clip, HAS_CUDA))
+        if need_test:
+            test_history = append_dict(test_history, test_model(model, test, HAS_CUDA))
+        draw_plot = show_plot or save_plot
+        if draw_plot:
+            plt.close('all')
+            fig = util.plot_history(train_history, test_history, draw_plot)
+            if save_plot:
+                fig.savefig(path.join(save_dir, save_prefix + 'plot.pdf'))
+        if save_dir is not None:
+        torch.save(model, path.join(save_dir, save_prefix + str(epoch)))
 

@@ -36,5 +36,4 @@ train = DataLoader(dataset(mode="train"),
 test = DataLoader(dataset(mode="test"),
                   shuffle=True, batch_size=128)
 
-train.train_model(model, opt, train, test, grad_clip, HAS_CUDA=HAS_CUDA, save_plot=True, save_prefix=save_prefix)
-imgs = 
+train.train_model(model, opt, train, test, grad_clip, EPOCHS, HAS_CUDA=HAS_CUDA, save_plot=True, save_prefix=save_prefix)
