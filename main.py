@@ -5,10 +5,23 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 import argparse
+import importlib.util
+argparser = argparse.ArgumentParser()
+argparser.add_argument("-c", "--config", help="path to conf file", required=True, dest="config")
+args = argparser.parse_args()
+conf = args.config
+# TODO add decent config support and other params
+if conf == "MNSIT_NO":
+    import configs.mnist_no_attention_config as config
+elif conf == "MNIST_ATT":
+    import configs.mnist_attention_config as config
+elif conf == "DD_MNIST_ATT":
+    import configs.dd_mnist_attention_config as config
+else:
+    import configs.dummy_config as config
 
 # TODO parse args
 
-import configs.mnist_attention_config as config
 NEED_EVAL = True
 HAS_CUDA = True
 
@@ -37,7 +50,7 @@ model = model.DRAW(HIDDEN, Z, T, imsize[0], imsize[1], read_size=READ_SIZE, writ
 if HAS_CUDA:
     model = model.cuda()
 
-opt = optim.Adam(model.parameters(), lr, betas=(0.5, 0.99))
+opt = optim.Adam(model.parameters(), lr, betas=(0.9, 0.99))
 scheduler = optim.lr_scheduler.StepLR(opt, 5, 0.3)
 
 train = DataLoader(dataset(mode="train"),
