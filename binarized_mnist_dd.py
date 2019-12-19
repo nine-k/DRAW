@@ -1,7 +1,7 @@
 from binarized_mnist import BinarizedMNIST
 import numpy as np
 
-class BinarizedMNISTDoubleDigit(BinarizedMnist):
+class BinarizedMNISTDoubleDigit(BinarizedMNIST):
     def __init__(self, canvas_size=(60, 60), **kwargs):
         super().__init__(**kwargs)
         self.canvas_size = canvas_size

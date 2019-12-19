@@ -1,4 +1,10 @@
-import argparser
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
+import argparse
 
 # TODO parse args
 
@@ -6,7 +12,8 @@ import configs.mnist_attention_config as config
 NEED_EVAL = True
 HAS_CUDA = True
 
-import train
+import train as train_funcs
+import model
 
 dataset = config.dataset
 imsize = config.imsize

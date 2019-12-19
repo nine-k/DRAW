@@ -1,8 +1,13 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 from collections import defaultdict
 from os import path
 import numpy as np
-from matplotlib import plt as pyplot
-import utils
+from matplotlib import pyplot as plt
+import util
+from tqdm import tqdm
 
 def calc_metrics(pred, x):
     x = x.cpu().numpy()
@@ -23,7 +28,7 @@ def append_dict(dest, to_add):
         dest[k].extend(to_add)
     return dest
 
-def train_model(model, train, opt, grad_clip, HAS_CUDA=True)
+def train_epoch(model, train, opt, grad_clip, HAS_CUDA=True):
     model.train()
     history = defaultdict(list)
     for x in tqdm(train):
@@ -36,7 +41,7 @@ def train_model(model, train, opt, grad_clip, HAS_CUDA=True)
         loss = lx * lz
         loss.backward()
         if grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            torch.nn.util.clip_grad_norm_(model.parameters(), grad_clip)
         opt.step()
         p, r, f1 = calc_metrics(pred.detach(), x)
         history["Lx"].append(lx.item())
@@ -46,7 +51,7 @@ def train_model(model, train, opt, grad_clip, HAS_CUDA=True)
         history["f1"].append(f1)
     return history
 
-def test_model(model, test, HAS_CUDA=True):
+def test_epoch(model, test, HAS_CUDA=True):
     history = defaultdict(list)
     model.eval()
     for x in test:
@@ -84,7 +89,7 @@ def train_model(model, opt, train, test, scheduler, epochs, grad_clip=-1, HAS_CU
         draw_plot = show_plot or save_plot
         if draw_plot:
             plt.close('all')
-            fig = util.plot_history(train_history, test_history, draw_plot)
+            fig = util.plot_history(train_history, test_history, show_plot)
             if save_plot:
                 fig.savefig(path.join(save_dir, save_prefix + 'plot.pdf'))
         if save_dir is not None:
