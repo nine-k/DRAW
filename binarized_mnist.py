@@ -15,7 +15,7 @@ class BinarizedMNIST(Dataset):
                 raise Exception("no such file")
             else:
                 path = os.path.join(path, mode)
-                urllib.request.urlretrieve(BinarizedMnist.URLS[mode], path)
+                urllib.request.urlretrieve(BinarizedMNIST.URLS[mode], path)
         self.data = []
         with open(path, "r") as f:
             for line in f:

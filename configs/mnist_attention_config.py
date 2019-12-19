@@ -1,7 +1,7 @@
 # params from the DRAW paper (except for learning params)
-from binarized_mnist_dd import BinarizedMNISTDoubleDigit
+from binarized_mnist import BinarizedMNIST
 
-dataset = BinarizedMNISTDoubleDigit
+dataset = BinarizedMNIST
 imsize = (28, 28)
 save_prefix = "MNIST_ATT_"
 

@@ -1,4 +1,10 @@
-import argparser
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
+import argparse
 
 # TODO parse args
 
@@ -6,7 +12,8 @@ import configs.mnist_attention_config as config
 NEED_EVAL = True
 HAS_CUDA = True
 
-import train
+import train as train_funcs
+import model
 
 dataset = config.dataset
 imsize = config.imsize
@@ -36,5 +43,4 @@ train = DataLoader(dataset(mode="train"),
 test = DataLoader(dataset(mode="test"),
                   shuffle=True, batch_size=128)
 
-train.train_model(model, opt, train, test, grad_clip, HAS_CUDA=HAS_CUDA, save_plot=True, save_prefix=save_prefix)
-imgs = 
+train_funcs.train_model(model, opt, train, test, grad_clip, HAS_CUDA=HAS_CUDA, save_plot=True, save_prefix=save_prefix)

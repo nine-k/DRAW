@@ -26,7 +26,7 @@ class DRAWAttentionParams(nn.Module):
 
 # TODO SEPARATE READ AND WRITE ATTENTION
 class DRAW(nn.Module):
-    def __init__(self, lstm_hidden, z_size, T, img_h, img_w, read_size=None, write_size=None, use_gpu=HAS_CUDA):
+    def __init__(self, lstm_hidden, z_size, T, img_h, img_w, read_size=None, write_size=None, use_gpu=True):
         # set class vars
         super().__init__()
         self.lstm_hidden = lstm_hidden
@@ -138,7 +138,7 @@ class DRAW(nn.Module):
     def decoder_loss(self, x, y):
         return self.decoder_loss_fn(x, y) / x.size(0) # divide by batch size
 
-    def latent_loss(self):
+    def latent_loss(self, x):
         loss = 0.
         for (mu, sigma, logsigma) in zip(self.mus, self.sigmas, self.logsigmas):
             loss += (mu**2 + sigma**2 - 2* logsigma) / 2
@@ -148,7 +148,7 @@ class DRAW(nn.Module):
 
 
     def loss(self, x, y):
-        return self.decoder_loss(x, y), self.latent_loss()
+        return self.decoder_loss(x, y), self.latent_loss(x)
 
     def forward(self, x):
         batch_size = x.size(0)

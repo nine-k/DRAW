@@ -1,9 +1,15 @@
+from matplotlib import pyplot as plt
 
 def find_closest(imgs, dataset):
     closest_imgs = [None] * len(imgs)
     min_l2 = [None] * len(imgs)
-    for img in imgs:
+    for idx, img in enumerate(imgs):
         for sample in dataset:
+            l2 = ((sample - img)**2).sum()
+            if min_l2[idx] is None or min_l2[idx] > l2:
+                min_l2[idx] = l2
+                closest_imgs[idx] = sample.squeeze()
+    return closest_imgs
 
 def flatten(x):
     return x.view(x.size(0), -1)
