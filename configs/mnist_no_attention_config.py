@@ -14,6 +14,8 @@ WRITE_SIZE = None
 
 # learn params
 lr = 1e-3
+lr_step = 5
+lr_gamma = 0.1
 grad_clip = 4.
 BATCH_SIZE = 64
 EPOCHS = 20

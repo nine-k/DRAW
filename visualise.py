@@ -11,16 +11,13 @@ import argparse
 argparser = argparse.ArgumentParser()
 argparser.add_argument("-m", "--model", help="path to model", required=True, dest="model")
 argparser.add_argument("-d", "--dataset", help="dataset name MNIST or MNIST_DD", required=True, dest="dataset")
-argparser.add_argument("-g", "--gif", help="generate gif", required=False, action="store_false", dest="gif")
-argparser.add_argument("-p", "--prefix", help="file_prefix", required=False, dest="prefix", default="vis_")
+argparser.add_argument("-p", "--prefix", help="file_prefix", required=True, dest="prefix", default="vis_")
 args = argparser.parse_args()
 
 model_path = args.model
 dataset = args.dataset
-need_gif = args.gif
 save_prefix = args.prefix
 
-print(need_gif)
 
 if dataset == "MNIST":
     from binarized_mnist import BinarizedMNIST as dataset
@@ -77,14 +74,11 @@ for idx in range(NUM_TO_VIS):
                                        data[idx].reshape(shape)
                                    )
         fig = plt.figure()
+        plt.subplot(1, 2, 1)
         plt.axis("off")
         plt.imshow(hilighted)
-        p = "%s%d_%d_read.%s" % (path.join(save_dir, save_prefix), idx, t, img_format)
-        fig.savefig(p)
-        if need_gif:
-            att_images.append(imageio.imread(p))
 
-        fig = plt.figure()
+        plt.subplot(1, 2, 2)
         plt.axis("off")
         img = gen_history[t][idx]
         img.resize(*shape)
@@ -92,10 +86,7 @@ for idx in range(NUM_TO_VIS):
         p = "%s%d_%d_read.%s" % (path.join(save_dir, save_prefix), idx, t, img_format)
         fig.savefig(p)
         plt.close("all")
-        if need_gif:
-            write_images.append(imageio.imread(p))
-    if need_gif:
-        print('saving')
-        imageio.mimsave('./%s%d_read.gif' % (save_prefix), att_images)
-        imageio.mimsave('./%s%d_write.gif' % (save_prefix), write_images)
+        write_images.append(imageio.imread(p))
+    print('saving')
+    imageio.mimsave('./%s.gif' % (save_prefix), write_images)
 
