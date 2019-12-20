@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 import argparse
 argparser = argparse.ArgumentParser()
-argparser.add_argument("-c", "--config", help="path to conf file", required=True, dest="config")
+argparser.add_argument("-c", "--config", help="name of config file. either MNIST_NO, MNIST_ATT, DD_MNIST_ATT", required=True, dest="config")
 args = argparser.parse_args()
 conf = args.config
 # TODO add decent config support and other params
