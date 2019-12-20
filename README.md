@@ -20,9 +20,9 @@ pip install -r requirements.txt
 
 | Значение     | Описание            |      
 |--------------|---------------------|
-| MNIST_NO     |                     |
-| MNIST_ATT    |                     |
-| DD_MNIST_ATT |                     |
+| MNIST_NO     |  MNIST без внимания |
+| MNIST_ATT    | MNIST с внимением   |
+| DD_MNIST_ATT | MNIST two digits c вниманием|
 
 Пример запуска main
 ```bash
@@ -33,7 +33,7 @@ python run main.py --config MNIST_NO
 
 | Параметр        | Описание            |      
 |-----------------|---------------------|
-| --model (-m)    | DD_MNIST_ATT_19     |
+| --model (-m)    | путь к модели       |
 | --dataset (-d)  |  MNIST или MNIST_DD |
 | --prefix (-p)   | имя гиф-изображения |
 
@@ -49,7 +49,7 @@ python run generate.py \
 
 | Параметр        | Описание            |      
 |-----------------|---------------------|
-| --model (-m)    | DD_MNIST_ATT_19     |
+| --model (-m)    | путь к модели       |
 | --dataset (-d)  |  MNIST или MNIST_DD |
 | --prefix (-p)   | имя гиф-изображения |
 
