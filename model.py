@@ -184,7 +184,7 @@ class DRAW(nn.Module):
             )
             c_t = c_t + self.write(h_t_dec)
             if self.save_attentions:
-                self.canvas_history[self.t] = c_t.cpu().detach().numpy()
+                self.canvas_history[self.t] = torch.sigmoid(c_t.cpu().detach()).numpy()
         if self.save_attentions:
             self.save_attentions = False
             return self.canvas_history, self.attention_history

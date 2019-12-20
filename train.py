@@ -41,7 +41,7 @@ def train_epoch(model, train, opt, grad_clip, HAS_CUDA=True):
         loss = lx + lz
         loss.backward()
         if grad_clip > 0:
-            torch.nn.util.clip_grad_norm_(model.parameters(), grad_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
         opt.step()
         p, r, f1 = calc_metrics(pred.detach(), x)
         history["Lx"].append(lx.item())

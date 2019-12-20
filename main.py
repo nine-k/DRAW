@@ -5,7 +5,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 import argparse
-import importlib.util
 argparser = argparse.ArgumentParser()
 argparser.add_argument("-c", "--config", help="path to conf file", required=True, dest="config")
 args = argparser.parse_args()

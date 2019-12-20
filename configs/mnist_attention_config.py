@@ -13,10 +13,10 @@ READ_SIZE = 2
 WRITE_SIZE = 5
 
 # learning params
-lr = 4e-4
-lr_step = 10
-lr_gamma = 0.6
+lr = 8e-4
+lr_step = 8
+lr_gamma = 0.5
 BATCH_SIZE = 128
 EPOCHS = 30
-grad_clip = -4.
+grad_clip = 5.
 
