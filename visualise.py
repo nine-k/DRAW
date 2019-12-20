@@ -26,7 +26,7 @@ if dataset == "MNIST":
     from binarized_mnist import BinarizedMNIST as dataset
     shape = (28, 28)
 elif dataset == "MNIST_DD":
-    from binarized_mnist_dd import BinarizedMNISTDoubleDigit as dataset
+    from binarized_mnist_dd import BinarizedMNISTDoubleDigits as dataset
     shape = (60, 60)
 else:
     raise ValueError("no such dataset")
@@ -42,8 +42,8 @@ def visualize_attention(x, y, delta, N, img):
     h, w = img.shape
     attention_mat = np.zeros((h, w))
     x_start = max(0, int(x - delta * (N - 1) / 2.))
-    y_start = max(0, int(y - delta * (N - 1) / 2.))
     x_end = max(0, int(x + delta * (N - 1) / 2.))
+    y_start = max(0, int(y - delta * (N - 1) / 2.))
     y_end = max(0, int(y + delta * (N - 1) / 2.))
     attention_mat[y_start : y_end, x_start : x_end] = 1. # make full square
     if y_end - y_start > 2:
@@ -96,6 +96,6 @@ for idx in range(NUM_TO_VIS):
             write_images.append(imageio.imread(p))
     if need_gif:
         print('saving')
-        imageio.mimsave('./%s%d_read.gif' % (save_prefix, idx), att_images)
-        imageio.mimsave('./%s%d_write.gif' % (save_prefix, idx), write_images)
+        imageio.mimsave('./%s%d_read.gif' % (save_prefix), att_images)
+        imageio.mimsave('./%s%d_write.gif' % (save_prefix), write_images)
 
